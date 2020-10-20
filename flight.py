@@ -4,7 +4,7 @@ import altair as alt
 from vega_datasets import data
 import pydeck as pdk
 
-
+st.beta_set_page_config(layout="wide")
 alt.data_transformers.enable('data_server')
 
 st.title("Let's analyze some Data.")
@@ -103,6 +103,153 @@ def plot_airport(df):
 
 plot_airport(df)
 
+def plot_map_origin(df):
+    airports = data.airports()
+    states = alt.topo_feature(data.us_10m.url, feature="states")
+
+    # Create mouseover selection
+    select_city = alt.selection_single(
+        on="mouseover", nearest=True, fields=["ORIGIN"], empty="none"
+    )
+
+    # Define which attributes to lookup from airports.csv
+    lookup_data = alt.LookupData(
+        airports, key="iata", fields=["state", "latitude", "longitude"]
+    )
+
+    background = alt.Chart(states).mark_geoshape(
+        fill="lightgray",
+        stroke="white"
+    ).properties(
+        width=500,
+        height=350
+    ).project("albersUsa")
+
+    scale = alt.Scale(
+        range=['green', 'orange', 'darkred'],
+        type='linear'
+    )
+
+
+    connections = alt.Chart(df).mark_rule(opacity=0.35).encode(
+        latitude="latitude:Q",
+        longitude="longitude:Q",
+        latitude2="lat2:Q",
+        longitude2="lon2:Q",
+        color=alt.Color("delay:Q", scale=scale),
+        size=alt.Size("count:Q", legend=None)
+    ).transform_aggregate(
+        count="count(ARR_DELAY)",
+        delay="average(ARR_DELAY)",
+        groupby=["ORIGIN","DEST"]
+    ).transform_lookup(
+        lookup="ORIGIN",
+        from_=lookup_data
+    ).transform_lookup(
+        lookup="DEST",
+        from_=lookup_data,
+        as_=["state", "lat2", "lon2"]
+    ).transform_filter(select_city)
+
+    points = alt.Chart(df).mark_circle().encode(
+        latitude="latitude:Q",
+        longitude="longitude:Q",
+        size=alt.Size("routes:Q", scale=alt.Scale(range=[0, 1000]), legend=None),
+        order=alt.Order("routes:Q", sort="descending"),
+        tooltip=["ORIGIN:N", "average_delay:Q"]
+    ).transform_aggregate(
+        average_delay="average(ARR_DELAY)",
+        routes="count(DEST)",
+        groupby=["ORIGIN"]
+    ).transform_lookup(
+        lookup="ORIGIN",
+        from_=lookup_data
+    ).transform_filter(
+        (alt.datum.state != "PR") & (alt.datum.state != "VI")
+    ).add_selection(
+        select_city
+    )
+    st.write("Which origins had more delayed flights?")
+    st.write("You can select each origin and see the distribution. ")
+
+    st.write((background + connections + points).configure_view(stroke=None))
+
+def plot_map_dest(df):
+    airports = data.airports()
+    states = alt.topo_feature(data.us_10m.url, feature="states")
+
+    # Create mouseover selection
+    select_city = alt.selection_single(
+        on="mouseover", nearest=True, fields=["DEST"], empty="none"
+    )
+
+    # Define which attributes to lookup from airports.csv
+    lookup_data = alt.LookupData(
+        airports, key="iata", fields=["state", "latitude", "longitude"]
+    )
+
+    background = alt.Chart(states).mark_geoshape(
+        fill="lightgray",
+        stroke="white"
+    ).properties(
+        width=500,
+        height=350
+    ).project("albersUsa")
+
+    scale = alt.Scale(
+        range=['green', 'orange', 'darkred'],
+        type='linear'
+    )
+
+
+    connections = alt.Chart(df).mark_rule(opacity=0.35).encode(
+        latitude="latitude:Q",
+        longitude="longitude:Q",
+        latitude2="lat2:Q",
+        longitude2="lon2:Q",
+        color=alt.Color("delay:Q", scale=scale),
+        size=alt.Size("count:Q", legend=None)
+    ).transform_aggregate(
+        count="count(ARR_DELAY)",
+        delay="average(ARR_DELAY)",
+        groupby=["ORIGIN","DEST"]
+    ).transform_lookup(
+        lookup="DEST",
+        from_=lookup_data
+    ).transform_lookup(
+        lookup="ORIGIN",
+        from_=lookup_data,
+        as_=["state", "lat2", "lon2"]
+    ).transform_filter(select_city)
+
+    points = alt.Chart(df).mark_circle().encode(
+        latitude="latitude:Q",
+        longitude="longitude:Q",
+        size=alt.Size("routes:Q", scale=alt.Scale(range=[0, 1000]), legend=None),
+        order=alt.Order("routes:Q", sort="descending"),
+        tooltip=["DEST:N", "average_delay:Q"]
+    ).transform_aggregate(
+        average_delay="average(ARR_DELAY)",
+        routes="count(ORIGIN)",
+        groupby=["DEST"]
+    ).transform_lookup(
+        lookup="DEST",
+        from_=lookup_data
+    ).transform_filter(
+        (alt.datum.state != "PR") & (alt.datum.state != "VI")
+    ).add_selection(
+        select_city
+    )
+    st.write("Which destinations had more delayed flights?")
+    st.write("You can select each destination and see the distribution. ")
+    st.write((background + connections + points).configure_view(stroke=None))
+
+row1_1, row1_2 = st.beta_columns((2,3))
+with row1_1:
+    plot_map_origin(df)
+    
+with row1_2:
+    plot_map_dest(df)
 
 
 # Is delay related to distance?
