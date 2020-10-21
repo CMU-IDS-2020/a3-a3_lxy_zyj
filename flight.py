@@ -125,6 +125,11 @@ def show_delay_type_selection(key):
     return delay_type
 
 def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
+    if collect_from=='ORIGIN':
+        st.subheader("Let's analyze flights that fly out from each origin. 🛫")
+    else:
+        st.subheader("Let's analyze flights that fly in to each destination. 🛬")
+
     airports = data.airports()
     states = alt.topo_feature(data.us_10m.url, feature="states")
 
@@ -206,15 +211,16 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
     ).add_selection(
         select_city
     )
-    st.write("You can select each airport and see the distribution.\n \
-    Thickness represents the throughput and color represents the lateness")
+    st.write("You can select each airport and see the distribution.")
+    st.write("Thickness represents the throughput and color represents the lateness")
 
     st.write((background + connections + points).configure_view(stroke=None))
 
+st.header("Is geographical position related to the flight delays?")
 row1_1, row1_2 = st.beta_columns((1,1))
 with row1_1:
     plot_map(df)
-    
+
 with row1_2:
     plot_map(df, 'DEST', 'ORIGIN')
 
