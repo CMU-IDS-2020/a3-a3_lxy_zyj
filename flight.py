@@ -7,7 +7,7 @@ import pydeck as pdk
 st.beta_set_page_config(layout="wide")
 alt.data_transformers.enable('data_server')
 
-st.title("Let's analyze some Data.")
+st.title("What made your flight delayed?")
 
 @st.cache  # add caching so we load the data only once
 def load_data(url):
@@ -42,8 +42,10 @@ show_data()
 def delayed_count():
     st.write("Delayed Count")
     delay_df = df.loc[:, ['ARR_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']]
-    delay_count = alt.Chart(df).mark_bar().encode(
-        x=alt.X("ARR_DELAY"),
+    delay_count = alt.Chart(df).mark_bar().transform_calculate(    
+        delay="datum.ARR_DELAY < 400 ? datum.ARR_DELAY : 400"
+    ).encode(
+        x=alt.X('delay:Q'),
         y=alt.Y("count(ARR_DELAY)"),
         tooltip=['ARR_DELAY', 'count(ARR_DELAY)']
     ).properties(
@@ -60,6 +62,52 @@ def delayed_count():
     st.write(delay_percent)
 
 delayed_count()
+
+
+def delay_distribution(df):
+    brush = alt.selection_interval(encodings=['x'])
+    delay_names = ['ARR_DELAY','DEP_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']
+    hist = (
+        alt.Chart().mark_bar().encode(
+            alt.X(
+                alt.repeat("row"),
+                type="quantitative",
+                axis=alt.Axis(
+                    format='d', titleAnchor='start'
+                ),
+            ),
+            alt.Y('count():Q', title=None, scale=alt.Scale(type='log')),
+            tooltip=['count():Q']
+        )
+    )
+    st.write(alt.layer(
+        hist.add_selection(brush).encode(color=alt.value('lightgrey')),
+        hist.transform_filter(brush),
+    ).properties(width=600, height=100).repeat(
+        row=delay_names,
+        data=df
+    ).transform_calculate(
+        ARR_DELAY='datum.ARR_DELAY <300 ? datum.ARR_DELAY : 300',
+        DEP_DELAY='datum.DEP_DELAY <300 ? datum.DEP_DELAY : 300'
+
+    ).configure_view(
+        stroke='transparent'
+    )
+    )
+
+
+    delay_time = df.loc[:, ['ARR_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']]
+    delay_time = pd.melt(delay_time, var_name = 'Delay Type', value_name = 'Minutes')
+
+    delay = alt.Chart(delay_time).mark_boxplot().encode(
+        x = 'Minutes',
+        y = 'count()',
+        row = 'Delay Type',
+        tooltip = ['Delay Type', 'Minutes', 'count():Q'],
+    ).properties(width = 630, height = 80)
+    st.write(delay)
+
+delay_distribution(df)
 
 # delay vs position
 def plot_airport(df):
@@ -137,8 +185,8 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
     select_city = alt.selection_single(
         on="mouseover", fields=[collect_from], empty="none"
     )
-    min_value_delay = st.slider("Select minimun value of delay", -100, 400, key=collect_from)
-    max_value_delay = st.slider("Select maximun value of delay", -100, 400, key=collect_from)
+    min_value_delay = st.slider("Select minimun value of delay", -100, 1000, -100, key=collect_from)
+    max_value_delay = st.slider("Select maximun value of delay", -100, 1000, 1000, key=collect_from)
     delay_type = show_delay_type_selection(collect_from)
 
     # Define which attributes to lookup from airports.csv
@@ -150,14 +198,13 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
         fill="lightgray",
         stroke="white"
     ).properties(
-        width=500,
-        height=350
+        width=650,
+        height=400
     ).project("albersUsa")
 
     scale = alt.Scale(
         range=['green', 'orange', 'darkred'],
-        type='linear',
-        domain=(0,180)
+        domain=(0,60)
     )
 
     connections = alt.Chart(df).mark_rule(opacity=0.35).transform_filter(
@@ -169,7 +216,7 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
         latitude2="lat2:Q",
         longitude2="lon2:Q",
         color=alt.Color("delay:Q", scale=scale),
-        size=alt.Size("count:Q",scale=alt.Scale(range=[0, 100], domain=(0, 20),type='linear'), legend=None),
+        size=alt.Size("count:Q",scale=alt.Scale(range=[0, 40], domain=(0, 20),type='linear'), legend=None),
         tooltip=['ORIGIN:N', 'DEST:N', 'count:Q', 'delay:Q']
     ).transform_aggregate(
         count=f"count({delay_type})",
