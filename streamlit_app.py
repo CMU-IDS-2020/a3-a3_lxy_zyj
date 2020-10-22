@@ -3,7 +3,6 @@ import pandas as pd
 import altair as alt
 
 # st.beta_set_page_config(layout="wide")
-alt.data_transformers.enable('data_server')
 
 st.title("Why is Your Flight Delayed?")
 st.text("Interactive Data Science Assignment 3, by Yeju Zhou & Xuanyi Li")
