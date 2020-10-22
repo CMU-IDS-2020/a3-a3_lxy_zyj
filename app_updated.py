@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import altair as alt
 from vega_datasets import data
-import pydeck as pdk
 
 st.beta_set_page_config(layout="wide")
 alt.data_transformers.enable('data_server')
@@ -43,7 +42,6 @@ show_data()
 
 
 # Overview of delay & cancellation
-
 def delay_per():
     st.subheader('How many flights are delayed, diverted or cancelled among the 5K flights?')
     delay_per = alt.Chart(df).mark_bar().encode(
