@@ -150,18 +150,62 @@ def delay_distribution(df):
         stroke='transparent'
     ))
 
-    delay_time = df.loc[:, ['ARR_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']]
-    delay_time = pd.melt(delay_time, var_name = 'Delay Type', value_name = 'Minutes')
-
-    delay = alt.Chart(delay_time).mark_boxplot().encode(
-        x = 'Minutes',
-        y = 'count()',
-        row = 'Delay Type',
-        tooltip = ['Delay Type', 'Minutes', 'count():Q'],
-    ).properties(width = 600, height = 80)
-    st.write(delay)
 
 delay_distribution(df)
+
+
+st.header("What factors delay your flight?")
+
+"We define the 'STATUS' of a flight such that the 'STATUS' of a flight delayed for less than 0 minutes is 'on time', more than 0 minutes is 'slightly delayed', \
+more than 30 minutes is delayed. And some other flights are 'diverted' or 'cancelled'."
+
+st.subheader('\n What affects the delay status of a flight?')
+
+# STATUS by MONTH/CARRIER/ORIGIN ...
+
+def status_by_option():
+    option = st.selectbox(
+        'Flight Status by ?',
+         ['MONTH', 'DATE', 'CARRIER', 'ORIGIN', 'DEST'])
+
+    if option == 'MONTH':
+        x = 'month(FL_DATE):O'
+        l = 12
+    elif option == 'DATE':
+        x = 'date(FL_DATE):O'
+    elif option == 'CARRIER':
+        x = 'OP_CARRIER:O'
+        l = len(df['OP_CARRIER'].unique())
+    elif option == 'ORIGIN':
+        x = 'ORIGIN:O'
+        l = len(df['ORIGIN'].unique())
+    elif option == 'DEST':
+        x = 'DEST:O'
+        l = len(df['DEST'].unique())
+
+    if option == 'MONTH' or option == 'DATE':
+
+        status_by_option = alt.Chart(df).mark_bar().transform_filter(alt.datum['STATUS'] != 'on time').encode(
+            x = alt.X(x, title = option),
+            y = alt.Y('count()', title = 'Count Delayed Flights'),
+            color = 'STATUS',
+            tooltip = [alt.Tooltip(x, title = option), alt.Tooltip('count()', title = 'Count Delayed Flights')],
+        ).properties(width = 800, height = 400).interactive()
+
+    else:
+        status_by_option = alt.Chart(df).mark_bar().transform_filter(alt.datum['STATUS'] != 'on time').encode(
+            x = alt.X(x, axis = alt.Axis(labelOverlap = True), sort = '-y', title = option),
+            y = alt.Y('count()', title = 'Count Delayed Flights'),
+            color = 'STATUS',
+            tooltip = [alt.Tooltip(x, title = option), alt.Tooltip('count()', title = 'Count Delayed Flights')],
+        ).properties(width = 800, height = 400).interactive()
+
+    status_by_option
+
+status_by_option()
+
+'It is noteworthy that different carriers have drastically different performance on flight delays.'
+'Carrier WN flew almost twice the number of delayed flights than any other carrier!' 
 
 
 
@@ -364,61 +408,7 @@ def carrier_delay():
 carrier_delay()
 
 
-st.header("What other factors also delay your flight?")
-
-"We define the 'STATUS' of a flight such that the 'STATUS' of a flight delayed for less than 0 minutes is 'on time', more than 0 minutes is 'slightly delayed', \
-more than 30 minutes is delayed. And some other flights are 'diverted' or 'cancelled'."
-
-st.subheader('\n What affects the delay status of a flight other than geographical location?')
-
-# STATUS by MONTH/CARRIER/ORIGIN ...
-
-def status_by_option():
-    option = st.selectbox(
-        'Flight Status by ?',
-         ['MONTH', 'DATE', 'CARRIER', 'ORIGIN', 'DEST'])
-
-    if option == 'MONTH':
-        x = 'month(FL_DATE):O'
-        l = 12
-    elif option == 'DATE':
-        x = 'date(FL_DATE):O'
-    elif option == 'CARRIER':
-        x = 'OP_CARRIER:O'
-        l = len(df['OP_CARRIER'].unique())
-    elif option == 'ORIGIN':
-        x = 'ORIGIN:O'
-        l = len(df['ORIGIN'].unique())
-    elif option == 'DEST':
-        x = 'DEST:O'
-        l = len(df['DEST'].unique())
-
-    if option == 'MONTH' or option == 'DATE':
-
-        status_by_option = alt.Chart(df).mark_bar().transform_filter(alt.datum['STATUS'] != 'on time').encode(
-            x = alt.X(x, title = option),
-            y = alt.Y('count()', title = 'Count Delayed Flights'),
-            color = 'STATUS',
-            tooltip = [alt.Tooltip(x, title = option), alt.Tooltip('count()', title = 'Count Delayed Flights')],
-        ).properties(width = 800, height = 400).interactive()
-
-    else:
-        status_by_option = alt.Chart(df).mark_bar().transform_filter(alt.datum['STATUS'] != 'on time').encode(
-            x = alt.X(x, axis = alt.Axis(labelOverlap = True), sort = '-y', title = option),
-            y = alt.Y('count()', title = 'Count Delayed Flights'),
-            color = 'STATUS',
-            tooltip = [alt.Tooltip(x, title = option), alt.Tooltip('count()', title = 'Count Delayed Flights')],
-        ).properties(width = 800, height = 400).interactive()
-
-    status_by_option
-
-status_by_option()
-
-'It is noteworthy that different carriers have drastically different performance on flight delays.'
-'Carrier WN flew almost twice the number of delayed flights than any other carrier!' 
-
-
-st.subheader("Let's see how the departure & arrival time relate to flight delays.")
+st.header("Now let's see how the departure & arrival time relate to flight delays.")
 
 '\n Drag you mouse to select an area and see how the delay status distribute over that time interval!'
 '\n You can also click the colored dots on the legend to see the distribution of one particular status.'
@@ -498,7 +488,7 @@ status_by_dep_arr()
 
 def delay_by_month_date():
 
-    st.subheader('Are there more delays in particular months or dates as the seasons change?')
+    st.header('Are there more delays in particular months or dates as the seasons change?')
 
     option = st.selectbox('Month or Date?', ['Month', 'Date'])
     if option == 'Month':
@@ -544,7 +534,7 @@ late_aircraft_delay_by_time()
 
 
 
-st.subheader('Others...')
+st.header('Others...?')
 
 def delay_type_by_option():
     delay_option = st.selectbox(
