@@ -6,7 +6,7 @@
 
 - Yeju Zhou (Andrew ID: yejuz)
 
-  <img src="./title.png" width = 60%>
+  <img src="./title.png" width = 80%>
 
 
 
@@ -50,7 +50,7 @@ The first couple of bar charts show the ratio of delayed and on-time flights, an
 
 Geographical information is very important for flights. Flights can be affected by the cities, airports from which they departure and to which they arrive. Given hundreds of flight routes across cities, airports and states in the US, we decide to draw a map plot with circles to visualize the flight routes and airport locations along with their delay statistics. To enhance clarity and flexibility, we do not always show the messy flight routes, instead, the routes connected to a city and relevant statistics are revealed when pointing the mouse to the city.
 
-<img src="./map.png" width=60%>
+<img src="./map.png" width=80%>
 
 
 
@@ -58,7 +58,7 @@ Geographical information is very important for flights. Flights can be affected 
 
 Another feature that distinguishes a flight is the schedule. We plot a point plot with the departure time as the x-axis and the arrival time as the y-axis. Every point or circle on the plot indicates exactly one flight. The color of the points indicates the delay status of the flight. To make the plot more informative, we add a selection tool that allows the user to select a time interval. After selection, the points outside of the interval will be faded. And the two bar charts below counts the flights of each delay status for flights within the selected time interval, allowing the user to find out the time interval during which the flights are more likely to be delayed. The user can also select one particular delay status to view by clicking the color dot on the legend.
 
-<img src="./point.png" width=60%>
+<img src="./point.png" width=80%>
 
 
 
@@ -66,7 +66,7 @@ Another feature that distinguishes a flight is the schedule. We plot a point plo
 
 Multiple visualizations in the app enable axis selection, allowing the user to explore the dataset with flexibility. Although we have already presented the most eye-catching patterns and insights, there are still correlations that might be interesting for the user. We give users the flexibility to select features and discover on their own. These plots are comparatively simple, however, we hardcode to ensure different data types would not mess up with the encodings.
 
-<img src="./bar.png" width=60%>
+<img src="./bar.png" width=80%>
 
 
 
