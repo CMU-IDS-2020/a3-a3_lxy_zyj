@@ -349,12 +349,25 @@ def carrier_delay():
     Carrier Delay represent the delay caused by the air carrier. 
     Possible occurence are: aircraft cleaning, aircraft damage, baggage, etc.
 
-    You can select the interval in the graph below to explore the carrier delays.
     """
+
+    carrier_delay = alt.Chart(df).mark_bar().transform_filter(
+        alt.datum['CARRIER_DELAY']>0
+    ).encode(
+        x=alt.X("OP_CARRIER", sort='-y'),
+        y=alt.Y("average(CARRIER_DELAY)", scale=alt.Scale(zero=False)),
+        tooltip=["OP_CARRIER", "average(CARRIER_DELAY)"]
+    ).properties(
+        width=600, height=250
+    )
+    st.write(carrier_delay)
+
     picked = alt.selection_interval()
 
     carrier_delay_dist = alt.Chart(df).mark_point().transform_filter(
         alt.datum['CARRIER_DELAY']>0
+    ).transform_calculate(    
+        CARRIER_DELAY="datum.CARRIER_DELAY < 350 ? datum.CARRIER_DELAY : 350", 
     ).encode(
         x=alt.X("OP_CARRIER"),
         y=alt.Y("CARRIER_DELAY", scale=alt.Scale(zero=False)),
@@ -363,20 +376,11 @@ def carrier_delay():
             sort='descending'),
         tooltip=['OP_CARRIER', 'CARRIER_DELAY', 'ARR_DELAY']
     ).properties(
-        width=600, height=200
+        width=600, height=100
     ).add_selection(picked) 
 
-    carrier_delay = alt.Chart(df).mark_bar().transform_filter(
-        alt.datum['CARRIER_DELAY']>0
-    ).encode(
-        x=alt.X("OP_CARRIER"),
-        y=alt.Y("average(CARRIER_DELAY)", scale=alt.Scale(zero=False)),
-        tooltip=["OP_CARRIER", "average(CARRIER_DELAY)"]
-    ).properties(
-        width=600, height=200
-    ).transform_filter(picked)
-
-    st.write(carrier_delay_dist & carrier_delay)
+    
+    # st.write()
 
     # st.write(carrier_delay_dist.add_selection(picked) & carrier_delay.transform_filter(picked))
     # binding selection
@@ -384,6 +388,7 @@ def carrier_delay():
     # dd_select = alt.selection_single(encodings=['color'], bind=input_dropdown)
 
     ## carrier delay vs. arrival delay
+    "**Is there any relationship between Carrier Delay and other type delays?**"
     select = alt.selection_single(on='mouseover', fields=['OP_CARRIER'])
 
     delay_type_input = st.selectbox("Show correlation between Carrier Delay and ",('Arrival Delay', 'Departure Delay',
@@ -401,10 +406,12 @@ def carrier_delay():
         color=alt.Color('OP_CARRIER'),
         tooltip=[delay_type, 'CARRIER_DELAY','OP_CARRIER']
     ).properties(
-        width=600, height=400
+        width=600, height=300
     )
-
-    st.write( carrier_vs_arr.encode(
+    """
+    You can select the interval in the graph below to explore the carrier delays in a specific range.
+    """
+    st.write(carrier_delay_dist & carrier_vs_arr.transform_filter(picked).encode(
         color=alt.condition(select, "OP_CARRIER:N", alt.value('lightgray'))
     ).add_selection(select))
 
