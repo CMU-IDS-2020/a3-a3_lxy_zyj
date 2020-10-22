@@ -6,7 +6,10 @@ from vega_datasets import data
 # st.beta_set_page_config(layout="wide")
 alt.data_transformers.enable('data_server')
 
-st.title("What made your flight delay?")
+st.title("Why is Your Flight Delayed?")
+st.text("Interactive Data Science Assignment 3, by Yeju Zhou & Xuanyi Li")
+
+st.write("Explore how flights delay in the United States and possible reasons that lead to the delays. ")
 
 @st.cache  # add caching so we load the data only once
 def load_data(url):
@@ -35,7 +38,10 @@ df.loc[df['CANCELLED'] == 1, 'ON_TIME?'] = 'Delayed'
 
 
 def show_data(df):
-    st.write("In this project, we use a fraction of the flight dataset to explore. This dataset contains....")
+    st.header('Flight Dataset')
+
+    st.write("In this project, we randomly select 5K rows from the flight dataset in 2018. ")
+    st.write("This dataset contains....")
     if st.checkbox("Show Raw Data"):
         st.write("Let's look at raw data in the Data Frame.")
         st.write(df)
@@ -73,6 +79,8 @@ show_data(df)
 
 
 # Overview of delay & cancellation
+st.header('Overview of Delay & Cancalation')
+
 def delay_per():
     st.subheader('How many flights are delayed, diverted or cancelled among the 5K flights?')
     delay_per = alt.Chart(df).mark_bar().encode(
@@ -95,10 +103,23 @@ delay_per()
 
 
 def delay_distribution(df):
-    st.write('Flight delays are divided into categories: \
-        1) arrival delay, 2) depature delay, 3) carrier delay, 4) weather delay, \
-        5) national aviation system delay, 6) security delay and 7) late aircrate delay.')
-    "Let's see how each of these delays distribute."
+    st.subheader('Delay time distribution')
+
+    """
+    Flight delays are divided into categories:
+    - Arrival Delay
+    - Depature Delay
+        
+    The causes of arrival delay or departure delay are divided into categories: 
+    - Carrier Delay
+    - Weather Delay
+    - National Aviation System Delay
+    - Security Delay 
+    - Late Aircraft Delay
+    """
+
+    "**Let's see how each of these delays distribute. Is there any relationship among different delay types?**"
+    "You can select a range of delay on one graph to see distribution of delay for other types."
 
     brush = alt.selection_interval(encodings=['x'])
     delay_names = ['ARR_DELAY','DEP_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']
@@ -127,9 +148,7 @@ def delay_distribution(df):
 
     ).configure_view(
         stroke='transparent'
-    )
-    )
-
+    ))
 
     delay_time = df.loc[:, ['ARR_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']]
     delay_time = pd.melt(delay_time, var_name = 'Delay Type', value_name = 'Minutes')
@@ -144,10 +163,10 @@ def delay_distribution(df):
 
 delay_distribution(df)
 
+
+
 # delay vs position
-def show_delay_type_selection(key):
-    delay_type_input = st.selectbox("Which type of delay you want to explore?",('Arrival Delay', 'Departure Delay', 'Carrier Delay',
-       'Weather Delay', 'Nas Delay', 'Security Delay', 'Late Aircraft Delay'), key=key)
+def get_delay_type(delay_type_input):
     if delay_type_input=='Arrival Delay':
         delay_type='ARR_DELAY'
     elif delay_type_input=='Departure Delay':
@@ -166,11 +185,17 @@ def show_delay_type_selection(key):
         delay_type='ARR_DELAY'
     return delay_type
 
+def show_delay_type_selection(key):
+    delay_type_input = st.selectbox("Which type of delay you want to explore?",('Arrival Delay', 'Departure Delay', 'Carrier Delay',
+       'Weather Delay', 'Nas Delay', 'Security Delay', 'Late Aircraft Delay'), key=key)
+    return get_delay_type(delay_type_input)
+
 def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
+    st.write("")
     if collect_from=='ORIGIN':
-        st.subheader("Let's analyze flights that fly out from each origin. 🛫")
+        "**Let's analyze flights that fly out from each origin.** 🛫"
     else:
-        st.subheader("Let's analyze flights that fly in to each destination. 🛬")
+        "**Let's analyze flights that fly in to each destination.** 🛬"
 
     airports = data.airports()
     states = alt.topo_feature(data.us_10m.url, feature="states")
@@ -256,8 +281,8 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
     ).add_selection(
         select_city
     )
-    st.write("You can select each airport and see the distribution.")
-    st.write("Thickness represents the throughput and color represents the lateness")
+    st.write("You can select each airport and see the distribution of delays from/to this airport.")
+    st.write("Thickness represents the throughput. Color represents the lateness.")
 
     st.write((background + connections + points).configure_view(stroke=None))
 
@@ -273,41 +298,69 @@ plot_map(df, 'DEST', 'ORIGIN')
 # delay composition
 ## Carrier delay with carriers
 def carrier_delay():
-    st.write("Is there any carrier that is more likely to delay?")
+    st.header("Is there any carrier that is more likely to delay?")
 
-    carrier_delay = alt.Chart(df).mark_point().transform_filter(
+    """
+    Carrier Delay represent the delay caused by the air carrier. 
+    Possible occurence are: aircraft cleaning, aircraft damage, baggage, etc.
+
+    You can select the interval in the graph below to explore the carrier delays.
+    """
+    carrier_delay_dist = alt.Chart(df).mark_point().transform_filter(
         alt.datum['CARRIER_DELAY']>0
     ).encode(
         x=alt.X("OP_CARRIER"),
-        y=alt.Y("CARRIER_DELAY", scale=alt.Scale(zero=False))
+        y=alt.Y("CARRIER_DELAY", scale=alt.Scale(zero=False)),
+        order=alt.Order(
+            'average(CARRIER_DELAY)',
+            sort='descending'),
+        tooltip=['OP_CARRIER', 'CARRIER_DELAY', 'ARR_DELAY']
     ).properties(
-        width=600, height=400
+        width=600, height=200
     )
 
+    carrier_delay = alt.Chart(df).mark_bar().transform_filter(
+        alt.datum['CARRIER_DELAY']>0
+    ).encode(
+        x=alt.X("OP_CARRIER"),
+        y=alt.Y("average(CARRIER_DELAY)", scale=alt.Scale(zero=False)),
+        tooltip=["OP_CARRIER", "average(CARRIER_DELAY)"]
+    ).properties(
+        width=600, height=200
+    )
+
+
     picked = alt.selection_interval()
-    select = alt.selection_single(on='mouseover', fields=['OP_CARRIER'])
+    # st.write(carrier_delay_dist.add_selection(picked) & carrier_delay.transform_filter(picked))
     # binding selection
     # input_dropdown = alt.binding_select(options=carrier_names, name="Carrier ")
     # dd_select = alt.selection_single(encodings=['color'], bind=input_dropdown)
 
     ## carrier delay vs. arrival delay
+    select = alt.selection_single(on='mouseover', fields=['OP_CARRIER'])
+
+    delay_type_input = st.selectbox("Show correlation between Carrier Delay and ",('Arrival Delay', 'Departure Delay',
+       'Weather Delay', 'Nas Delay', 'Security Delay', 'Late Aircraft Delay'))
+    delay_type = get_delay_type(delay_type_input)
+    st.write(delay_type)
+
     carrier_vs_arr = alt.Chart(df).mark_point().transform_filter(
         alt.datum['CARRIER_DELAY']>=0
     ).transform_calculate(    
-        ARR_DELAY="datum.ARR_DELAY < 180 ? datum.ARR_DELAY : 180",  # clamp delays > 3 hours    
-        CARRIER_DELAY="datum.CARRIER_DELAY < 180 ? datum.CARRIER_DELAY : 180",  # clamp delays > 3 hours    
+        delay=f"datum.{delay_type} < 350 ? datum.{delay_type} : 350",  
+        CARRIER_DELAY="datum.CARRIER_DELAY < 350 ? datum.CARRIER_DELAY : 350", 
     ).encode(
-        x=alt.X("ARR_DELAY"),
+        x='delay:Q',
         y=alt.Y("CARRIER_DELAY"),
         color=alt.Color('OP_CARRIER'),
-        tooltip=['ARR_DELAY', 'CARRIER_DELAY','OP_CARRIER']
+        tooltip=[delay_type, 'CARRIER_DELAY','OP_CARRIER']
     ).properties(
         width=600, height=400
     )
-
-    st.write(carrier_delay.add_selection(picked) & carrier_vs_arr.transform_filter(picked).encode(
+    st.write(carrier_delay_dist.add_selection(picked) & carrier_delay.transform_filter(picked) & carrier_vs_arr.transform_filter(picked).encode(
         color=alt.condition(select, "OP_CARRIER:N", alt.value('lightgray'))
     ).add_selection(select))
+
 carrier_delay()
 
 
@@ -443,10 +496,9 @@ def status_by_dep_arr():
 status_by_dep_arr()
 
 
+def delay_by_month_date():
 
-def weather_delay_by_month_date():
-
-    st.subheader('Are there more weather delays in particular months or dates as the seasons change?')
+    st.subheader('Are there more delays in particular months or dates as the seasons change?')
 
     option = st.selectbox('Month or Date?', ['Month', 'Date'])
     if option == 'Month':
@@ -464,7 +516,7 @@ def weather_delay_by_month_date():
 
     all_delay
 
-weather_delay_by_month_date()
+delay_by_month_date()
 
 
 st.subheader('Some vis that see trends:')
