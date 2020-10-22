@@ -354,9 +354,9 @@ def carrier_delay():
     carrier_delay = alt.Chart(df).mark_bar().transform_filter(
         alt.datum['CARRIER_DELAY']>0
     ).encode(
-        x=alt.X("OP_CARRIER", sort='-y'),
-        y=alt.Y("average(CARRIER_DELAY)", scale=alt.Scale(zero=False)),
-        tooltip=["OP_CARRIER", "average(CARRIER_DELAY)"]
+        x=alt.X("OP_CARRIER", sort='-y', title = 'Carrier'),
+        y=alt.Y("average(CARRIER_DELAY)", scale=alt.Scale(zero=False), title = 'Average Carrier Delay'),
+        tooltip=[alt.Tooltip("OP_CARRIER", title = 'Carrier'), alt.Tooltip("average(CARRIER_DELAY)", title = 'Average Carrier Delay')]
     ).properties(
         width=600, height=250
     )
@@ -420,8 +420,7 @@ carrier_delay()
 
 st.header("Now let's see how the departure & arrival time relate to flight delays.")
 
-'\n Drag you mouse to select an area and see how the delay status distribute over that time interval!'
-'\n You can also click the colored dots on the legend to see the distribution of one particular status.'
+'\n Drag you mouse to select an area and see how the delay status distribute over that time interval! You can also click the colored dots on the legend to see the distribution of one particular status.'
 
 def status_by_dep_arr():
     selection = alt.selection_multi(fields = ['STATUS'])
@@ -495,6 +494,8 @@ def status_by_dep_arr():
 
 status_by_dep_arr()
 
+'If you investigate carefully, you will find that there are much more delayed flights in the upper-right corner, where flights departure late or arrive late.'
+
 
 def delay_by_month_date():
 
@@ -515,12 +516,15 @@ def delay_by_month_date():
     ).properties(width = 600, height = 400).interactive()
 
     all_delay
-
+    
+    if option == 'Month':
+    	st.write("It makes sense that there are more extreme weathers during July-August (heavy rains) and Nov. (heavy snows)!")
+        
 delay_by_month_date()
 
 
-st.subheader('Some vis that see trends:')
-
+st.subheader('Will the flying distance also affect the flight delays?')
+'It appears that the shorter the distance, the larger the late aircraft delay! Maybe this is caused by the fact that more flights are flying shorter distances, and the more flights, the more congestion.'
 
 def late_aircraft_delay_by_distance():
     chart = alt.Chart(df).mark_point().encode(
@@ -530,47 +534,3 @@ def late_aircraft_delay_by_distance():
     chart
 
 late_aircraft_delay_by_distance()
-
-
-
-def late_aircraft_delay_by_time():
-    chart = alt.Chart(df).mark_point().encode(
-        x = 'CRS_ELAPSED_TIME',
-        y = 'LATE_AIRCRAFT_DELAY',
-    ).properties(width = 600, height = 400)
-    chart
-
-late_aircraft_delay_by_time()
-
-
-
-st.header('Others...?')
-
-def delay_type_by_option():
-    delay_option = st.selectbox(
-        'Which type of delay would you like to discover?', 
-        ['ARR_DELAY', 'WEATHER_DELAY', 'NAS_DELAY', 'CARRIER_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY'])
-
-    option = st.selectbox(
-        'By which axis?',
-        ['MONTH', 'DEPARTURE TIME', 'ARRIVAL TIME', 'DISTANCE', 'FLYING TIME'])
-
-    if option == 'MONTH':
-        x_axis = 'month(FL_DATE):O'
-    elif option == 'DEPARTURE TIME':
-        x_axis = 'CRS_DEP_TIME'
-    elif option == 'ARRIVAL TIME':
-        x_axis = 'CRS_ARR_TIME'
-    elif option == 'DISTANCE':
-        pass
-    elif option == 'FLYING TIME':
-        x_axis = 'CRS_ELAPSED_TIME'
-
-    delay_option_chart = alt.Chart(df).mark_point().encode(
-        x = alt.X(x_axis, title = option),
-        y = alt.Y(delay_option, title = delay_option),
-    ).properties(width = 600, height = 400)
-
-    delay_option_chart
-
-delay_type_by_option()
