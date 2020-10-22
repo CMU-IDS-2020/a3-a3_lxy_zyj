@@ -351,6 +351,8 @@ def carrier_delay():
 
     You can select the interval in the graph below to explore the carrier delays.
     """
+    picked = alt.selection_interval()
+
     carrier_delay_dist = alt.Chart(df).mark_point().transform_filter(
         alt.datum['CARRIER_DELAY']>0
     ).encode(
@@ -362,7 +364,7 @@ def carrier_delay():
         tooltip=['OP_CARRIER', 'CARRIER_DELAY', 'ARR_DELAY']
     ).properties(
         width=600, height=200
-    )
+    ).add_selection(picked) 
 
     carrier_delay = alt.Chart(df).mark_bar().transform_filter(
         alt.datum['CARRIER_DELAY']>0
@@ -372,10 +374,10 @@ def carrier_delay():
         tooltip=["OP_CARRIER", "average(CARRIER_DELAY)"]
     ).properties(
         width=600, height=200
-    )
+    ).transform_filter(picked)
 
+    st.write(carrier_delay_dist & carrier_delay)
 
-    picked = alt.selection_interval()
     # st.write(carrier_delay_dist.add_selection(picked) & carrier_delay.transform_filter(picked))
     # binding selection
     # input_dropdown = alt.binding_select(options=carrier_names, name="Carrier ")
@@ -387,22 +389,22 @@ def carrier_delay():
     delay_type_input = st.selectbox("Show correlation between Carrier Delay and ",('Arrival Delay', 'Departure Delay',
        'Weather Delay', 'Nas Delay', 'Security Delay', 'Late Aircraft Delay'))
     delay_type = get_delay_type(delay_type_input)
-    st.write(delay_type)
 
     carrier_vs_arr = alt.Chart(df).mark_point().transform_filter(
         alt.datum['CARRIER_DELAY']>=0
     ).transform_calculate(    
-        delay=f"datum.{delay_type} < 350 ? datum.{delay_type} : 350",  
+        SELECTED_DELAY=f"datum.{delay_type} < 350 ? datum.{delay_type} : 350",  
         CARRIER_DELAY="datum.CARRIER_DELAY < 350 ? datum.CARRIER_DELAY : 350", 
     ).encode(
-        x='delay:Q',
+        x='SELECTED_DELAY:Q',
         y=alt.Y("CARRIER_DELAY"),
         color=alt.Color('OP_CARRIER'),
         tooltip=[delay_type, 'CARRIER_DELAY','OP_CARRIER']
     ).properties(
         width=600, height=400
     )
-    st.write(carrier_delay_dist.add_selection(picked) & carrier_delay.transform_filter(picked) & carrier_vs_arr.transform_filter(picked).encode(
+
+    st.write( carrier_vs_arr.encode(
         color=alt.condition(select, "OP_CARRIER:N", alt.value('lightgray'))
     ).add_selection(select))
 
