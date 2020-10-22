@@ -3,18 +3,19 @@ import pandas as pd
 import altair as alt
 from vega_datasets import data
 
-st.beta_set_page_config(layout="wide")
+# st.beta_set_page_config(layout="wide")
 alt.data_transformers.enable('data_server')
 
-st.title("What made your flight delayed?")
+st.title("What made your flight delay?")
 
 @st.cache  # add caching so we load the data only once
 def load_data(url):
     df = pd.read_csv(url)
-    df.fillna(0)
     return df
 
 df = load_data('./2018-5k.csv')
+df = df.drop('Unnamed: 27', 1)
+df = df.drop('Unnamed: 0', 1)
 df = df.fillna(0)
 carrier_names = df.OP_CARRIER.unique().tolist()
 airport_names = df.ORIGIN.unique().tolist()
@@ -33,12 +34,42 @@ df.loc[df['CANCELLED'] == 1, 'ON_TIME?'] = 'Delayed'
 
 
 
-def show_data():
-    st.write("This dataset contains....")
-    if st.checkbox("show raw data"):
+def show_data(df):
+    st.write("In this project, we use a fraction of the flight dataset to explore. This dataset contains....")
+    if st.checkbox("Show Raw Data"):
         st.write("Let's look at raw data in the Data Frame.")
         st.write(df)
-show_data()
+    if st.checkbox("Show Column Information"):
+        st.write("Let's look at columns in the Data Frame.")
+        st.markdown("**FL_DATE**: date of flight (yyyy-mm-dd)")
+        st.markdown("**OP_CARRIER**: carrier name")
+        st.markdown("**OP_CARRIER_FL_NUM**: flight number")
+        st.markdown("**ORIGIN**: origin IATA airport code")
+        st.markdown("**DEST**: destination IATA airport code")
+        st.markdown("**CRS_DEP_TIME**: scheduled departure time (hhmm)")
+        st.markdown("**DEP_TIME**: actual departure time (hhmm)")
+        st.markdown("**DEP_DELAY**: departure delay (minutes)")
+        st.markdown("**TAXI_OUT**: taxi out time (minutes)")
+        st.markdown("**WHEELS_OFF**: wheels off time (hhmm)")
+        st.markdown("**WHEELS_ON**: wheels on time (hhmm)")
+        st.markdown("**TAXI_IN**: taxi in time (minutes)")
+        st.markdown("**CRS_ARR_TIME**: scheduled arrival time (hhmm)")
+        st.markdown("**ARR_TIME**: actual arrival time (hhmm)")
+        st.markdown("**ARR_DELAY**: arrival delay (minutes)")
+        st.markdown("**CANCELLED**: cancelled Flight Indicator (1=Yes)")
+        st.markdown("**CANCELLATION_CODE**: specifies the reason for cancellation")
+        st.markdown("**DIVERTED**: diverted flight indicator (1=Yes)")
+        st.markdown("**CRS_ELAPSED_TIME**: estimated elapsed time (minutes)")
+        st.markdown("**ACTUAL_ELAPSED_TIME**: actual elapsed time (minutes)")
+        st.markdown("**AIR_TIME**: flight time (minutes)")
+        st.markdown("**DISTANCE**: distance between airports (miles)")
+        st.markdown("**CARRIER_DELAY**: carrier delay (minutes). Carrier delay is within the control of the air carrier.")
+        st.markdown("**WEATHER_DELAY**: weather delay (minutes). This is caused by extreme or hazardous weather conditions that are forecasted or manifest themselves on point of departure, enroute, or on point of arrival.")
+        st.markdown("**NAS_DELAY**: national airspace system (NAS) Delay (minutes). It may include may include: non-extreme weather conditions, airport operations, heavy traffic volume, air traffic control, etc. ")
+        st.markdown("**SECURITY_DELAY**: security delay (minutes). This is caused by security reason.")
+        st.markdown("**LATE_AIRCRAFT_DELAY**: late aircraft delay (minutes). This is due to the late arrival of the same aircraft at a previous airport.")
+    
+show_data(df)
 
 
 # Overview of delay & cancellation
@@ -64,7 +95,8 @@ delay_per()
 
 
 def delay_distribution(df):
-    st.write('Flight delays are divided into categories: 1) arrival delay, 2) depature delay, 3) carrier delay, 4) weather delay, \
+    st.write('Flight delays are divided into categories: \
+        1) arrival delay, 2) depature delay, 3) carrier delay, 4) weather delay, \
         5) national aviation system delay, 6) security delay and 7) late aircrate delay.')
     "Let's see how each of these delays distribute."
 
@@ -147,9 +179,13 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
     select_city = alt.selection_single(
         on="mouseover", fields=[collect_from], empty="none"
     )
-    min_value_delay = st.slider("Select minimun value of delay", -100, 1000, -100, key=collect_from)
-    max_value_delay = st.slider("Select maximun value of delay", -100, 1000, 1000, key=collect_from)
-    delay_type = show_delay_type_selection(collect_from)
+    row1_1, row1_2, _, row1_3 = st.beta_columns((5,5,1,5))
+    with row1_1:
+        min_value_delay = st.slider("Select minimun value of delay", -100, 1000, -100, key=collect_from)
+    with row1_2:
+        max_value_delay = st.slider("Select maximun value of delay", -100, 1000, 1000, key=collect_from)
+    with row1_3:
+        delay_type = show_delay_type_selection(collect_from)
 
     # Define which attributes to lookup from airports.csv
     lookup_data = alt.LookupData(
@@ -226,18 +262,18 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
     st.write((background + connections + points).configure_view(stroke=None))
 
 st.header("Is geographical position related to the flight delays?")
-row1_1, row1_2 = st.beta_columns((1,1))
-with row1_1:
-    plot_map(df)
+# row1_1, row1_2 = st.beta_columns((1,1))
+# with row1_1:
+plot_map(df)
 
-with row1_2:
-    plot_map(df, 'DEST', 'ORIGIN')
+# with row1_2:
+plot_map(df, 'DEST', 'ORIGIN')
 
 
 # delay composition
 ## Carrier delay with carriers
 def carrier_delay():
-    st.write("Delay vs carriers")
+    st.write("Is there any carrier that is more likely to delay?")
 
     carrier_delay = alt.Chart(df).mark_point().transform_filter(
         alt.datum['CARRIER_DELAY']>0
@@ -453,8 +489,6 @@ def late_aircraft_delay_by_time():
     chart
 
 late_aircraft_delay_by_time()
-
-
 
 
 
