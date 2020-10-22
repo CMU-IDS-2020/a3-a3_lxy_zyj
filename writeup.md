@@ -27,8 +27,6 @@ To answer these questions, we explore different types (or causes) of a flight de
 Generally, the application provides clear, interactive and flexible visualizations of the dataset to explore patterns and insights that can better inform travelers. 
 
 
-
-
 ## Design
 
 #### Data Cleansing & Transformation
