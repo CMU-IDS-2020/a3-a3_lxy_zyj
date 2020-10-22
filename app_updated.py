@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from vega_datasets import data
 
 # st.beta_set_page_config(layout="wide")
 alt.data_transformers.enable('data_server')
@@ -241,8 +240,11 @@ def plot_map(df, collect_from='ORIGIN', connect_to='DEST'):
     else:
         "**Let's analyze flights that fly in to each destination.** 🛬"
 
-    airports = data.airports()
-    states = alt.topo_feature(data.us_10m.url, feature="states")
+    # airports = data.airports()
+    # states = alt.topo_feature(data.us_10m.url, feature="states")
+    airports = pd.read_csv('airport.csv')
+    states = alt.topo_feature('https://vega.github.io/vega-datasets/data/us-10m.json', feature='states')
+
 
     # Create mouseover selection
     select_city = alt.selection_single(
