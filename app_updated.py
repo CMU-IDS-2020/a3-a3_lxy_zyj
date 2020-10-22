@@ -15,14 +15,6 @@ def load_data(url):
     df.fillna(0)
     return df
 
-"""
-'FL_DATE', 'OP_CARRIER', 'OP_CARRIER_FL_NUM', 'ORIGIN', 'DEST',
-       'CRS_DEP_TIME', 'DEP_TIME', 'DEP_DELAY', 'TAXI_OUT', 'WHEELS_OFF',
-       'WHEELS_ON', 'TAXI_IN', 'CRS_ARR_TIME', 'ARR_TIME', 'ARR_DELAY',
-       'CANCELLED', 'CANCELLATION_CODE', 'DIVERTED', 'CRS_ELAPSED_TIME',
-       'ACTUAL_ELAPSED_TIME', 'AIR_TIME', 'DISTANCE', 'CARRIER_DELAY',
-       'WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY',
-"""
 df = load_data('./2018-5k.csv')
 df = df.fillna(0)
 carrier_names = df.OP_CARRIER.unique().tolist()
@@ -71,32 +63,6 @@ def delay_per():
     delay_per + text
 
 delay_per()
-
-
-# delayed count
-def delayed_count():
-    st.write("How long do flights delay?")
-    delay_df = df.loc[:, ['ARR_DELAY','CARRIER_DELAY','WEATHER_DELAY', 'NAS_DELAY', 'SECURITY_DELAY', 'LATE_AIRCRAFT_DELAY']]
-    delay_count = alt.Chart(df).mark_bar().transform_calculate(    
-        delay="datum.ARR_DELAY < 400 ? datum.ARR_DELAY : 400"
-    ).encode(
-        x=alt.X('delay:Q'),
-        y=alt.Y("count(ARR_DELAY)"),
-        tooltip=['ARR_DELAY', 'count(ARR_DELAY)']
-    ).properties(
-        width=600, height=400
-    )
-    st.write(delay_count)
-
-    delay_percent = alt.Chart(delay_df).mark_bar().encode(
-        x = alt.X("ARR_DELAY"),
-        y = alt.Y("sum(CARRIER_DELAY)")
-    ).properties(
-        width=600, height=400
-    )
-    st.write(delay_percent)
-
-delayed_count()
 
 
 def delay_distribution(df):
@@ -149,47 +115,6 @@ def delay_distribution(df):
 delay_distribution(df)
 
 # delay vs position
-def plot_airport(df):
-    airports = data.airports()
-    # st.write(airports)
-    states = alt.topo_feature(data.us_10m.url, feature='states')
-    ori_df = df.merge(airports, left_on = "ORIGIN", right_on = "iata", how = "inner")
-    dest_df = df.merge(airports, left_on = "DEST", right_on = "iata", how = "inner")
-    
-    # US states background
-    background = alt.Chart(states).mark_geoshape(
-        fill='lightgray',
-        stroke='white'
-    ).properties(
-        width=500,
-        height=300
-    ).project('albersUsa')
-
-    # airport positions on background
-    points_dep = alt.Chart(ori_df).mark_circle().transform_filter(
-        alt.datum['DEP_DELAY']>0,
-    ).encode(
-        longitude='longitude',
-        latitude='latitude',
-        tooltip=['ORIGIN', 'DEP_DELAY'],
-        size=alt.Size('average(DEP_DELAY)'),
-        
-    )
-    st.write(background+points_dep)
-
-
-    points_arr = alt.Chart(dest_df).mark_circle().transform_filter(
-        alt.datum['ARR_DELAY']>0,
-    ).encode(
-        longitude='longitude',
-        latitude='latitude',
-        tooltip=['DEST', 'ARR_DELAY'],
-        size=alt.Size('average(ARR_DELAY)'),
-    )
-    st.write(background+points_arr)
-
-plot_airport(df)
-
 def show_delay_type_selection(key):
     delay_type_input = st.selectbox("Which type of delay you want to explore?",('Arrival Delay', 'Departure Delay', 'Carrier Delay',
        'Weather Delay', 'Nas Delay', 'Security Delay', 'Late Aircraft Delay'), key=key)
@@ -311,64 +236,7 @@ with row1_2:
     plot_map(df, 'DEST', 'ORIGIN')
 
 
-# Is delay related to distance?
-def delay_vs_distance():
-    st.write("Delay vs distance")
-    delay_dist = alt.Chart(df).mark_circle().encode(
-        x=alt.X("ARR_DELAY"),
-        y=alt.Y("DISTANCE"),
-        tooltip=['ARR_DELAY', "DISTANCE"]
-    ).properties(
-        width=600, height=400
-    ).interactive()
-    st.write(delay_dist)
-delay_vs_distance()
-
-# Is delay related to departure time?
-def delay_vs_departure_time():
-    st.write("Delay vs departure time")
-    delay_dist = alt.Chart(df).mark_circle().encode(
-        x=alt.X("CRS_DEP_TIME"),
-        y=alt.Y("ARR_DELAY"),
-        tooltip=['ARR_DELAY', "CRS_DEP_TIME"]
-    ).properties(
-        width=600, height=400
-    )
-    st.write(delay_dist)
-delay_vs_departure_time()
-
 # delay composition
-# NAS delay
-def nas_delay():
-    Top20airports = df[df['DEST'].isin([
-        'ORD', 'ATL', 'DFW', 'DEN', 'EWR', 'LAX', 'IAH', 'PHX', 
-        'DTW', 'SFO','LAS', 'DEN', 'ORD','JFK' ,'CLT', 'LGA', 
-        'MCO', 'MSP', 'BOS','PHL'])]
-    nas_delay = alt.Chart(Top20airports).mark_point().transform_filter(
-        alt.datum['NAS_DELAY']>0
-    ).encode(
-        x=alt.X("ORIGIN"),
-        y=alt.Y("NAS_DELAY", scale=alt.Scale(zero=False))
-    ).properties(
-        width=600, height=400
-    )
-    st.write(nas_delay)
-nas_delay()
-
-# Is delay related to date&time?
-def delay_vs_datetime():
-    df_month_delay = df.loc[:, ['FL_DATE', 'ARR_DELAY', 'CARRIER_DELAY', 'WEATHER_DELAY']]
-    delay_vs_time = alt.Chart(df_month_delay).mark_line().encode(
-        x=alt.X("date(FL_DATE)"),
-        y=alt.Y("average(ARR_DELAY)"),
-        tooltip=['ARR_DELAY']
-    ).properties(
-        width=600, height=400
-    )
-    st.write(delay_vs_time)
-delay_vs_datetime()
-
-
 ## Carrier delay with carriers
 def carrier_delay():
     st.write("Delay vs carriers")
@@ -407,24 +275,6 @@ def carrier_delay():
         color=alt.condition(select, "OP_CARRIER:N", alt.value('lightgray'))
     ).add_selection(select))
 carrier_delay()
-
-# weather delay
-def weather_delay():
-    weather_delay = alt.Chart(df).mark_point().transform_filter(
-        alt.datum['WEATHER_DELAY']>0
-    ).transform_calculate(    
-        WEATHER_DELAY="datum.WEATHER_DELAY < 180 ? datum.WEATHER_DELAY : 180",  # clamp delays > 3 hours    
-    ).encode(
-        x=alt.X("ARR_DELAY"),
-        y=alt.Y("WEATHER_DELAY", scale=alt.Scale(zero=False)),
-        color=alt.Color('ORIGIN'),
-        tooltip=['ARR_DELAY', 'WEATHER_DELAY','ORIGIN']
-    ).properties(
-        width=600, height=400
-    )
-    st.write(weather_delay)
-weather_delay()
-
 
 
 st.header("What other factors also delay your flight?")
